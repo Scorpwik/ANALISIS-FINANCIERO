@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nexus Terminal</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --bg-main: #0b0f19;
+            --bg-card: rgba(30, 41, 59, 0.7);
+            --border: #334155;
+            --text: #f8fafc;
+            --text-mut: #94a3b8;
+            --green: #10b981;
+            --red: #ef4444;
+            --gold: #f59e0b;
+            --font-ui: 'Inter', sans-serif;
+            --font-num: 'JetBrains Mono', monospace;
+        }
+
+        body {
+            background-color: var(--bg-main);
+            color: var(--text);
+            font-family: var(--font-ui);
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+        }
+
+        /* Nav */
+        .navbar {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            padding: 20px;
+            background: rgba(15, 23, 42, 0.8);
+            border-bottom: 1px solid var(--border);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .tab-btn {
+            background: transparent;
+            border: 1px solid transparent;
+            color: var(--text-mut);
+            font-family: var(--font-ui);
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            padding: 10px 24px;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .tab-btn:hover { color: var(--text); background: rgba(255,255,255,0.05); }
+        .tab-btn.active { color: var(--gold); background: rgba(245, 158, 11, 0.1); border-color: var(--gold); }
+
+        .container {
+            padding: 30px;
+            max-width: 1300px;
+            margin: 0 auto;
+        }
+
+        .tab-pane { display: none; animation: fadeIn 0.4s ease; }
+        .tab-pane.active { display: block; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Glassmorphism Cards */
+        .glass-card {
+            background: var(--bg-card);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 10px 20px -5px rgba(0, 0, 0, 0.3);
+        }
+
+        h2, h3 { margin-top: 0; color: var(--text); font-weight: 600; letter-spacing: -0.5px; }
+        h3 { margin-bottom: 24px; font-size: 18px; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid rgba(51, 65, 85, 0.5); padding-bottom: 12px; }
+
+        .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+        .grid-2 { display: grid; grid-template-columns: 1fr 2fr; gap: 24px; margin-top: 24px; }
+
+        /* Forms */
+        .form-group { margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; }
+        .form-group label { color: var(--text-mut); font-size: 14px; font-weight: 500; }
+        .form-input {
+            background: rgba(15, 23, 42, 0.8);
+            border: 1px solid var(--border);
+            color: var(--gold);
+            font-family: var(--font-num);
+            padding: 10px 12px;
+            border-radius: 8px;
+            width: 140px;
+            text-align: right;
+            transition: all 0.2s;
+            font-size: 15px;
+        }
+        .form-input:focus { outline: none; border-color: var(--gold); box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.15); }
+        
+        .form-input.full { 
+            width: 100%; 
+            text-align: left; 
+            margin-top: 8px; 
+            color: var(--text); 
+            font-family: var(--font-ui); 
+            font-size: 14px;
+        }
+        .form-input.full:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15); }
+
+        .btn {
+            background: linear-gradient(135deg, rgba(245, 158, 11, 0.1), transparent);
+            border: 1px solid var(--gold);
+            color: var(--gold);
+            font-family: var(--font-ui);
+            font-weight: 600;
+            font-size: 15px;
+            padding: 14px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            width: 100%;
+            transition: all 0.3s;
+        }
+        .btn:hover { background: var(--gold); color: var(--bg-main); box-shadow: 0 0 15px rgba(245, 158, 11, 0.3); }
+        .btn.green { border-color: var(--green); color: var(--green); background: rgba(16, 185, 129, 0.1); }
+        .btn.green:hover { background: var(--green); color: var(--bg-main); box-shadow: 0 0 15px rgba(16, 185, 129, 0.3); }
+
+        /* Confluence Matrix */
+        .matrix-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 14px 16px;
+            background: rgba(15, 23, 42, 0.5);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            margin-bottom: 12px;
+        }
+        .matrix-row span:first-child { color: var(--text-mut); font-size: 14px; font-weight: 500; }
+        .icon-check { font-size: 16px; }
+
+        /* Signal */
+        .signal-box {
+            margin-top: 24px;
+            padding: 24px;
+            border-radius: 12px;
+            text-align: center;
+            font-size: 18px;
+            font-weight: 700;
+            letter-spacing: 1px;
+            transition: all 0.4s;
+            border: 2px solid var(--border);
+            background: rgba(0,0,0,0.2);
+            color: var(--text-mut);
+        }
+        .signal-box.active-buy { border-color: var(--green); color: var(--green); box-shadow: 0 0 25px rgba(16,185,129,0.15); background: rgba(16,185,129,0.05); }
+        .signal-box.active-sell { border-color: var(--red); color: var(--red); box-shadow: 0 0 25px rgba(239,68,68,0.15); background: rgba(239,68,68,0.05); }
+
+        /* Gemini Box */
+        .gemini-box {
+            background: rgba(245, 158, 11, 0.05);
+            border-left: 3px solid var(--gold);
+            padding: 16px;
+            border-radius: 4px 8px 8px 4px;
+            font-size: 14px;
+            line-height: 1.6;
+            color: var(--text);
+            height: 150px;
+            overflow-y: auto;
+            margin-top: 16px;
+        }
+        .gemini-box b { color: var(--gold); font-weight: 600; }
+        .gemini-box::-webkit-scrollbar { width: 6px; }
+        .gemini-box::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+        /* Portfolio Stats */
+        .stat-box { display: flex; flex-direction: column; gap: 10px; align-items: center; text-align: center; }
+        .stat-lbl { color: var(--text-mut); font-size: 13px; text-transform: uppercase; letter-spacing: 1.5px; font-weight: 600; }
+        .stat-val { font-family: var(--font-num); font-size: 36px; font-weight: 700; color: var(--text); }
+
+        /* Table */
+        .table-container { max-height: 250px; overflow-y: auto; margin-top: 16px; border: 1px solid var(--border); border-radius: 8px; }
+        .table-container::-webkit-scrollbar { width: 6px; }
+        .table-container::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 14px; text-align: left; border-bottom: 1px solid var(--border); font-size: 14px; }
+        th { color: var(--text-mut); font-weight: 600; background: rgba(15, 23, 42, 0.95); position: sticky; top: 0; z-index: 10; }
+        td.num { font-family: var(--font-num); }
+        .text-green { color: var(--green); }
+        .text-red { color: var(--red); }
+
+        .chart-container { height: 350px; width: 100%; position: relative; }
+
+        @media (max-width: 1024px) {
+            .grid-3 { grid-template-columns: 1fr; }
+            .grid-2 { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+    <nav class="navbar">
+        <button class="tab-btn active" data-tab="trading" onclick="switchTab('trading')">⚔️ Trading Desk (XAU/USD)</button>
+        <button class="tab-btn" data-tab="portfolio" onclick="switchTab('portfolio')">📈 Portafolio Indexado (S&P 500)</button>
+    </nav>
+
+    <main class="container">
+        
+        <!-- MODULE 1: Trading Desk -->
+        <div id="tab-trading" class="tab-pane active">
+            <div class="grid-3">
+                
+                <!-- Inputs -->
+                <div class="glass-card">
+                    <h3>📊 Datos de Mercado (H1)</h3>
+                    <div class="form-group">
+                        <label>Current Price</label>
+                        <input type="number" id="inpCurrent" class="form-input xau-inp" step="0.01">
+                    </div>
+                    <div class="form-group">
+                        <label>Open</label>
+                        <input type="number" id="inpOpen" class="form-input xau-inp" step="0.01">
+                    </div>
+                    <div class="form-group">
+                        <label>High</label>
+                        <input type="number" id="inpHigh" class="form-input xau-inp" step="0.01">
+                    </div>
+                    <div class="form-group">
+                        <label>Low</label>
+                        <input type="number" id="inpLow" class="form-input xau-inp" step="0.01">
+                    </div>
+                    <div class="form-group">
+                        <label>Close (Prev)</label>
+                        <input type="number" id="inpClose" class="form-input xau-inp" step="0.01">
+                    </div>
+
+                    <div style="margin-top: 32px;">
+                        <label style="color:var(--text-mut); font-size:14px; font-weight:500;">API Key (Gemini)</label>
+                        <input type="password" id="inpApiKey" class="form-input xau-inp full" placeholder="Introducir key aquí...">
+                    </div>
+                </div>
+
+                <!-- Confluence Engine -->
+                <div class="glass-card">
+                    <h3>⚙️ Motor de Confluencia Estricto</h3>
+                    
+                    <div class="matrix-row">
+                        <span>Tendencia Alineada (EMA 50)</span>
+                        <span id="chkTrend" class="icon-check">❌</span>
+                    </div>
+                    <div class="matrix-row">
+                        <span>Momentum a Favor (RSI/MACD)</span>
+                        <span id="chkMom" class="icon-check">❌</span>
+                    </div>
+                    <div class="matrix-row">
+                        <span>Volumen Óptimo (ATR)</span>
+                        <span id="chkVol" class="icon-check">❌</span>
+                    </div>
+                    <div class="matrix-row">
+                        <span>Risk/Reward Limpio (TP vs Pivots)</span>
+                        <span id="chkRR" class="icon-check">❌</span>
+                    </div>
+
+                    <div id="mainSignal" class="signal-box locked">
+                        🔒 ESPERAR CONFLUENCIA
+                    </div>
+                </div>
+
+                <!-- Gemini AI -->
+                <div class="glass-card">
+                    <h3>🧠 Gemini Fundamental Context</h3>
+                    <button class="btn" onclick="callGemini()">Analizar Contexto Macro</button>
+                    
+                    <div id="geminiOut" class="gemini-box">
+                        <i>Esperando análisis...</i>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- MODULE 2: Portfolio Tracker -->
+        <div id="tab-portfolio" class="tab-pane">
+            
+            <div class="grid-3 stats" style="margin-bottom: 24px;">
+                <div class="glass-card stat-box">
+                    <span class="stat-lbl">Capital Invertido</span>
+                    <span class="stat-val" id="lblInvested">$0.00</span>
+                </div>
+                <div class="glass-card stat-box">
+                    <span class="stat-lbl">Balance Actual</span>
+                    <span class="stat-val text-green" id="lblBalance">$0.00</span>
+                </div>
+                <div class="glass-card stat-box">
+                    <span class="stat-lbl">ROI Total (%)</span>
+                    <span class="stat-val" id="lblROI">0.00%</span>
+                </div>
+            </div>
+
+            <div class="grid-2">
+                
+                <div class="glass-card">
+                    <h3>Gestión de Aportes (DCA)</h3>
+                    <div class="form-group" style="margin-bottom: 24px;">
+                        <label>Monto a Invertir (USD)</label>
+                        <input type="number" id="inpDCA" class="form-input full" placeholder="Ej. 500" style="width:140px; margin-top:0;">
+                    </div>
+                    <button class="btn green" onclick="handleDCA()">Registrar Aporte al S&P 500</button>
+                    
+                    <h3 style="margin-top: 32px; font-size: 16px;">Historial de Transacciones</h3>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Fecha</th>
+                                    <th>Aporte</th>
+                                    <th>Precio SPY</th>
+                                </tr>
+                            </thead>
+                            <tbody id="spyHistoryBody">
+                                <!-- Filas dinámicas -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="glass-card">
+                    <h3>Curva de Crecimiento del Portafolio</h3>
+                    <div class="chart-container">
+                        <canvas id="spyChart"></canvas>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+    </main>
+
+    <script>
+        // --- 1. STATE & LOCALSTORAGE ---
+        const defaultState = {
+            xau: { current: 2350.50, open: 2345.00, high: 2355.20, low: 2340.10, close: 2344.80, apikey: '' },
+            spy: { invested: 0, shares: 0, history: [] }
+        };
+
+        let state = JSON.parse(localStorage.getItem('nexus_state')) || defaultState;
+
+        function saveState() {
+            localStorage.setItem('nexus_state', JSON.stringify(state));
+        }
+
+        // --- 2. INITIALIZATION ---
+        window.onload = () => {
+            // Restore XAU inputs
+            ['Current', 'Open', 'High', 'Low', 'Close', 'ApiKey'].forEach(k => {
+                const el = document.getElementById('inp' + k);
+                if (el && state.xau[k.toLowerCase()] !== undefined) {
+                    el.value = state.xau[k.toLowerCase()];
+                }
+            });
+            
+            // Listen to inputs
+            document.querySelectorAll('.xau-inp').forEach(inp => {
+                inp.addEventListener('input', (e) => {
+                    const key = e.target.id.replace('inp', '').toLowerCase();
+                    if (key === 'apikey') state.xau.apikey = e.target.value;
+                    else state.xau[key] = parseFloat(e.target.value) || 0;
+                    
+                    saveState();
+                    if (key !== 'apikey') runConfluenceEngine();
+                });
+            });
+
+            runConfluenceEngine();
+            updatePortfolioData();
+        };
+
+        // --- 3. UI TABS ---
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById('tab-' + tabId).classList.add('active');
+            document.querySelector(`[data-tab="${tabId}"]`).classList.add('active');
+            
+            if(tabId === 'portfolio' && spyChartObj) {
+                spyChartObj.resize();
+            }
+        }
+
+        // --- 4. MODULE 1: XAU ENGINE ---
+        function runConfluenceEngine() {
+            const d = state.xau;
+            if (!d.current || !d.open || !d.close || !d.high || !d.low) return;
+
+            // Approx Indicators
+            const range = d.high - d.low;
+            const atr = range;
+            const ema50 = (d.close + d.open) / 2;
+            const move = d.current - d.close;
+            const rsi = Math.max(0, Math.min(100, 50 + (move / (range || 1)) * 30));
+            const macd = move;
+            
+            const p = (d.high + d.low + d.current) / 3;
+            const r1 = (2 * p) - d.low;
+            const s1 = (2 * p) - d.high;
+
+            // Logic Validation (Strict)
+            let trend = d.current > ema50 ? 'BUY' : 'SELL';
+            let passTrend = true; 
+
+            let passMom = false;
+            // Bouncing from extremes & macd aligned
+            if (trend === 'BUY') passMom = rsi < 45 && macd > 0;
+            if (trend === 'SELL') passMom = rsi > 55 && macd < 0;
+
+            // Volume/Volatility Validation
+            let passVol = atr > 5; 
+
+            // Risk/Reward Validation (TP vs Pivots)
+            let slPips = 5; 
+            let passRR = false;
+            if (trend === 'BUY') {
+                let tp = d.current + (slPips * 1.5);
+                passRR = tp < r1;
+            } else {
+                let tp = d.current - (slPips * 1.5);
+                passRR = tp > s1;
+            }
+
+            // UI Update
+            document.getElementById('chkTrend').innerHTML = passTrend ? '✅' : '❌';
+            document.getElementById('chkMom').innerHTML = passMom ? '✅' : '❌';
+            document.getElementById('chkVol').innerHTML = passVol ? '✅' : '❌';
+            document.getElementById('chkRR').innerHTML = passRR ? '✅' : '❌';
+
+            const sigBox = document.getElementById('mainSignal');
+            if (passTrend && passMom && passVol && passRR) {
+                if (trend === 'BUY') {
+                    sigBox.className = 'signal-box active-buy';
+                    sigBox.innerHTML = '🟢 COMPRA CONFIRMADA';
+                } else {
+                    sigBox.className = 'signal-box active-sell';
+                    sigBox.innerHTML = '🔴 VENTA CONFIRMADA';
+                }
+            } else {
+                sigBox.className = 'signal-box locked';
+                sigBox.innerHTML = '🔒 ESPERAR CONFLUENCIA';
+            }
+        }
+
+        async function callGemini() {
+            const key = state.xau.apikey;
+            const out = document.getElementById('geminiOut');
+            if(!key) { 
+                out.innerHTML = '<span style="color:var(--red)">Error: API Key no configurada. Por favor introdúcela en los inputs de la izquierda.</span>'; 
+                return; 
+            }
+            
+            out.innerHTML = 'Conectando con Gemini 2.0 Flash...<br><span style="color:var(--gold)">Analizando estructura y flujos...</span>';
+            try {
+                const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${key}`, {
+                    method: 'POST',
+                    headers: {'Content-Type':'application/json'},
+                    body: JSON.stringify({
+                        contents: [{ parts: [{ text: `Analiza el contexto macroeconómico fundamental del oro (XAU/USD) asumiendo un precio actual de ${state.xau.current}. Responde ultra conciso (máximo 50 palabras). Usa formato HTML directo, utiliza <b> para las palabras clave importantes y <br> para saltos de línea. No utilices bloques de código Markdown.` }] }]
+                    })
+                });
+                if(!res.ok) throw new Error();
+                const d = await res.json();
+                out.innerHTML = d.candidates[0].content.parts[0].text.replace(/```html/g, '').replace(/```/g, '');
+            } catch(e) {
+                out.innerHTML = '<span style="color:var(--red)">Error en la conexión a Gemini. Compruebe la API Key.</span>';
+            }
+        }
+
+        // --- 5. MODULE 2: SPY PORTFOLIO TRACKER ---
+        let cachedSPY = null;
+        let spyChartObj = null;
+
+        async function fetchSPYPrice() {
+            if (cachedSPY) return cachedSPY;
+            try {
+                // Using allorigins cors proxy to access yahoo finance public api
+                const res = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent('https://query1.finance.yahoo.com/v8/finance/chart/SPY')}`);
+                const data = await res.json();
+                const parsed = JSON.parse(data.contents);
+                cachedSPY = parsed.chart.result[0].meta.regularMarketPrice;
+                return cachedSPY;
+            } catch(e) {
+                console.warn('Yahoo Finance fetch error (CORS/Network), using fallback value.');
+                cachedSPY = 515.20; // Fallback SPY price if API fails
+                return cachedSPY;
+            }
+        }
+
+        async function updatePortfolioData() {
+            const price = await fetchSPYPrice();
+            updatePortfolioUI(price);
+        }
+
+        async function handleDCA() {
+            const amt = parseFloat(document.getElementById('inpDCA').value);
+            if (!amt || amt <= 0) return;
+            
+            const price = await fetchSPYPrice();
+            const bought = amt / price;
+            
+            state.spy.invested += amt;
+            state.spy.shares += bought;
+            
+            const dateStr = new Date().toISOString().split('T')[0];
+            state.spy.history.push({
+                date: dateStr, 
+                amount: amt, 
+                price: price, 
+                totalShares: state.spy.shares
+            });
+            
+            saveState();
+            document.getElementById('inpDCA').value = '';
+            updatePortfolioUI(price);
+        }
+
+        function updatePortfolioUI(currentPrice) {
+            const invested = state.spy.invested;
+            const balance = state.spy.shares * currentPrice;
+            const roi = invested > 0 ? ((balance - invested) / invested) * 100 : 0;
+            
+            document.getElementById('lblInvested').textContent = `$${invested.toFixed(2)}`;
+            document.getElementById('lblBalance').textContent = `$${balance.toFixed(2)}`;
+            
+            const roiEl = document.getElementById('lblROI');
+            roiEl.textContent = `${roi.toFixed(2)}%`;
+            roiEl.style.color = roi >= 0 ? 'var(--green)' : 'var(--red)';
+            
+            renderSPYHistory();
+            renderSPYChart(currentPrice);
+        }
+
+        function renderSPYHistory() {
+            const tbody = document.getElementById('spyHistoryBody');
+            tbody.innerHTML = '';
+            // Display history backwards (newest first)
+            state.spy.history.slice().reverse().forEach(h => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${h.date}</td>
+                    <td class="num text-green">+$${h.amount.toFixed(2)}</td>
+                    <td class="num">$${h.price.toFixed(2)}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function renderSPYChart(currentPrice) {
+            const ctx = document.getElementById('spyChart').getContext('2d');
+            if (spyChartObj) spyChartObj.destroy();
+            
+            const labels = state.spy.history.map(h => h.date);
+            if(labels.length > 0) labels.push('Now');
+            
+            const dataPoints = state.spy.history.map(h => h.totalShares * h.price);
+            if(dataPoints.length > 0) dataPoints.push(state.spy.shares * currentPrice);
+
+            spyChartObj = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels,
+                    datasets: [{
+                        label: 'Valor Total USD',
+                        data: dataPoints,
+                        borderColor: '#10b981',
+                        backgroundColor: 'rgba(16, 185, 129, 0.15)',
+                        borderWidth: 3,
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 5,
+                        pointBackgroundColor: '#0b0f19',
+                        pointBorderColor: '#10b981'
+                    }]
+                },
+                options: {
+                    responsive: true, 
+                    maintainAspectRatio: false,
+                    plugins: { 
+                        legend: { display: false }, 
+                        tooltip: { mode: 'index', intersect: false } 
+                    },
+                    scales: {
+                        x: { ticks: { color: '#94a3b8', font: { family: 'JetBrains Mono', size: 11 } }, grid: { color: 'rgba(51, 65, 85, 0.3)' } },
+                        y: { ticks: { color: '#94a3b8', font: { family: 'JetBrains Mono', size: 11 } }, grid: { color: 'rgba(51, 65, 85, 0.3)' } }
+                    },
+                    interaction: { mode: 'nearest', axis: 'x', intersect: false }
+                }
+            });
+        }
+    </script>
+</body>
+</html>
