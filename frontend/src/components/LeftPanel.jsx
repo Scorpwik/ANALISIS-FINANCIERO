@@ -2,12 +2,19 @@ import React, { useState } from 'react';
 import useStore from '../store/useStore';
 
 export default function LeftPanel() {
-  const { goldData, setGoldData, risk, setRisk, activeTrades, addTrade, removeTrade, liveMarketData } = useStore();
-  const [newTrade, setNewTrade] = useState({ type: 'BUY', entry: '', lots: '0.01', sl: '', tp: '' });
+  const { goldData, setGoldData, risk, setRisk, liveMarketData, priceOffset, setPriceOffset } = useStore();
+  const [tvPriceInput, setTvPriceInput] = useState('');
+  
+  const rawPrice = liveMarketData.length > 0 ? liveMarketData[liveMarketData.length-1].close - priceOffset : 0;
 
-  const currentPrice = liveMarketData.length > 0 ? liveMarketData[liveMarketData.length-1].close : goldData.current;
+  const handleCalibration = () => {
+    const inputPrice = parseFloat(tvPriceInput);
+    if(inputPrice && rawPrice > 0) {
+        setPriceOffset(inputPrice - rawPrice);
+        setTvPriceInput('');
+    }
+  };
 
-  const handleGoldChange = (e) => setGoldData({ [e.target.name]: parseFloat(e.target.value) || 0 });
   const handleRiskChange = (e) => setRisk({ [e.target.name]: parseFloat(e.target.value) || 0 });
 
   // Calculadora de Riesgo Institucional
@@ -27,19 +34,36 @@ export default function LeftPanel() {
         <p className="text-slate-500 text-xs mt-1 uppercase tracking-widest font-semibold">Institutional Trading Setup</p>
       </div>
 
-      {/* Manual Market Data Override */}
-      <div className="bg-slate-900/40 backdrop-blur-md border border-slate-800 p-6 rounded-2xl shadow-xl">
-        <h2 className="text-sm font-semibold mb-4 text-slate-300 uppercase tracking-wider border-b border-slate-800/50 pb-2">Data Override (XAU/USD)</h2>
-        <div className="grid grid-cols-2 gap-3">
-          {['current', 'open', 'high', 'low', 'close'].map((k) => (
-            <div key={k} className={`${k==='current' ? 'col-span-2' : 'col-span-1'}`}>
-              <label className="block text-[10px] text-slate-500 uppercase mb-1 font-bold">{k}</label>
-              <input 
-                type="number" name={k} value={goldData[k]} onChange={handleGoldChange}
-                className="w-full bg-[#080b11]/80 border border-slate-800 rounded-lg p-2 text-amber-500 font-mono text-sm focus:border-amber-500 outline-none transition-all"
-              />
+      {/* Market Calibration */}
+      <div className="bg-slate-900/40 backdrop-blur-md border border-slate-800 p-6 rounded-2xl shadow-xl relative overflow-hidden">
+        <div className="absolute top-0 right-0 bg-amber-500/10 text-amber-500 text-[9px] px-2 py-1 rounded-bl-lg font-bold border-l border-b border-amber-500/30">NUEVO</div>
+        <h2 className="text-sm font-semibold mb-4 text-slate-300 uppercase tracking-wider border-b border-slate-800/50 pb-2">Sync con TradingView</h2>
+        <p className="text-[10px] text-slate-400 mb-3">Si tu broker tiene una diferencia de precio con nuestro feed en tiempo real, calíbralo aquí.</p>
+        
+        <div className="flex flex-col gap-2">
+            <div className="flex justify-between items-center bg-[#080b11]/50 p-2 rounded-lg border border-slate-800">
+                <span className="text-[10px] text-slate-500 font-bold uppercase">Precio Interno</span>
+                <span className="text-xs text-slate-300 font-mono">{rawPrice > 0 ? rawPrice.toFixed(2) : '...'}</span>
             </div>
-          ))}
+            
+            <div className="flex gap-2">
+              <input 
+                type="number" placeholder="Tu precio en TV (Ej. 4565)" value={tvPriceInput} onChange={e => setTvPriceInput(e.target.value)}
+                className="flex-grow bg-[#080b11]/80 border border-slate-800 rounded-lg p-2 text-amber-500 font-mono text-xs outline-none focus:border-amber-500 transition-all"
+              />
+              <button 
+                onClick={handleCalibration}
+                className="bg-amber-500/20 text-amber-500 border border-amber-500/50 px-3 rounded-lg font-bold text-[10px] uppercase hover:bg-amber-500 hover:text-black transition-all"
+              >
+                Sincronizar
+              </button>
+            </div>
+
+            {priceOffset !== 0 && (
+                <div className="mt-2 text-[10px] text-emerald-500 bg-emerald-500/10 p-2 rounded-lg border border-emerald-500/30 text-center font-bold">
+                    Offset Activado: {priceOffset > 0 ? '+' : ''}{priceOffset.toFixed(2)} USD
+                </div>
+            )}
         </div>
       </div>
 

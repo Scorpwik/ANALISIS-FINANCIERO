@@ -27,6 +27,11 @@ const useStore = create(
       timeframe: '15m',
       setTimeframe: (tf) => set({ timeframe: tf }),
 
+      // Market Calibration Offset
+      priceOffset: 0,
+      setPriceOffset: (offset) => set({ priceOffset: offset }),
+
+
       // Active Operations
       activeTrades: [],
       addTrade: (trade) => set((state) => ({ activeTrades: [...state.activeTrades, { ...trade, id: Date.now() }] })),

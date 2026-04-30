@@ -5,7 +5,7 @@ import useStore from '../store/useStore';
 
 export default function TradingViewChart() {
   const chartContainerRef = useRef();
-  const { liveMarketData, setLiveMarketData, activeAsset, setActiveAsset, timeframe, setTimeframe } = useStore();
+  const { liveMarketData, setLiveMarketData, activeAsset, setActiveAsset, timeframe, setTimeframe, priceOffset } = useStore();
 
   useEffect(() => {
     let chart;
@@ -19,7 +19,15 @@ export default function TradingViewChart() {
         if (!data || data.length < 50 || !isMounted) return;
         
         // Guardar para el motor de confluencia y AI
-        setLiveMarketData(data);
+        const calibratedData = data.map(d => ({
+            ...d,
+            open: d.open + priceOffset,
+            high: d.high + priceOffset,
+            low: d.low + priceOffset,
+            close: d.close + priceOffset
+        }));
+
+        setLiveMarketData(calibratedData);
         
         // Small delay to ensure layout is measured
         await new Promise(resolve => setTimeout(resolve, 100));
@@ -121,7 +129,7 @@ export default function TradingViewChart() {
       window.removeEventListener('resize', handleResize);
       if (chart) chart.remove();
     };
-  }, [activeAsset, timeframe]);
+  }, [activeAsset, timeframe, priceOffset]);
 
   const calculateEMA = (data, period) => {
     const k = 2 / (period + 1);
