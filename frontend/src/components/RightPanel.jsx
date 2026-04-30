@@ -3,7 +3,7 @@ import axios from 'axios';
 import useStore from '../store/useStore';
 
 export default function RightPanel() {
-  const { apiKey, setApiKey, liveMarketData, activeTrades, addTrade, removeTrade } = useStore();
+  const { apiKey, setApiKey, liveMarketData, activeTrades, addTrade, removeTrade, activeAsset } = useStore();
   
   const [aiSummary, setAiSummary] = useState('');
   const [newTrade, setNewTrade] = useState({ type: 'BUY', entry: '', lots: '0.01', sl: '', tp: '' });
@@ -73,7 +73,8 @@ export default function RightPanel() {
         price: price,
         rsi: conf.rsi,
         trend: conf.signal,
-        trades: activeTrades
+        trades: activeTrades,
+        asset: activeAsset
       });
       setAiSummary(data.summary);
     } catch (e) {
@@ -84,9 +85,9 @@ export default function RightPanel() {
   return (
     <div className="flex flex-col gap-4">
       
-      {/* Módulo 1: Motor de Confluencia (XAU) */}
+      {/* Módulo 1: Motor de Confluencia */}
       <div className="bg-slate-900/40 backdrop-blur-md border border-slate-800 p-6 rounded-2xl relative">
-        <h2 className="text-sm font-semibold mb-4 text-slate-300 uppercase tracking-wider border-b border-slate-800/50 pb-2">XAU Strict Engine</h2>
+        <h2 className="text-sm font-semibold mb-4 text-slate-300 uppercase tracking-wider border-b border-slate-800/50 pb-2">{activeAsset} Strict Engine</h2>
         
         <div className="flex flex-col gap-2 mb-6">
           <div className="flex justify-between items-center p-3 bg-[#080b11]/80 rounded-lg border border-slate-800/50">
@@ -160,7 +161,7 @@ export default function RightPanel() {
                   <div className={`font-mono text-xs font-bold ${pnl >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
                     {pnl >= 0 ? '+' : ''}{pnl.toFixed(2)} USD
                   </div>
-                  <button onClick={() => removeTrade(trade.id)} className="text-[8px] text-slate-600 hover:text-rose-500 transition-colors uppercase font-bold">Close</button>
+                  <button onClick={() => removeTrade(trade.id)} className="mt-1 bg-rose-500/10 text-rose-500 hover:bg-rose-500 hover:text-white px-3 py-1 rounded-lg transition-colors text-[9px] uppercase font-black border border-rose-500/50 w-full">Eliminar</button>
                 </div>
               </div>
             );

@@ -18,10 +18,8 @@ export default function TradingViewChart() {
         const { data } = await axios.get(`http://localhost:8000${endpoint}?interval=${timeframe}&period=${period}`);
         if (!data || data.length < 50 || !isMounted) return;
         
-        // Guardar para el motor de confluencia complejo (solo oro)
-        if (activeAsset === 'XAU/USD') {
-            setLiveMarketData(data);
-        }
+        // Guardar para el motor de confluencia y AI
+        setLiveMarketData(data);
         
         // Small delay to ensure layout is measured
         await new Promise(resolve => setTimeout(resolve, 100));
@@ -71,40 +69,38 @@ export default function TradingViewChart() {
           volumeSeries.setData(volData);
 
           // Capa 4: Señales (Markers) generadas por el Motor de Confluencia
-          if (activeAsset === 'XAU/USD') {
-            const markers = [];
-            const startIndex = Math.min(100, Math.floor(data.length / 2));
-            for (let i = startIndex; i < data.length; i++) {
-                const current = data[i];
-                const ema50 = data.slice(Math.max(0, i-50), i).reduce((a, b) => a + b.close, 0) / Math.min(50, i);
-                const ema100 = data.slice(Math.max(0, i-100), i).reduce((a, b) => a + b.close, 0) / Math.min(100, i);
-                
-                const trendBullish = current.close > ema50 && ema50 > ema100;
-                const trendBearish = current.close < ema50 && ema50 < ema100;
-                
-                if (trendBullish || trendBearish) {
-                    let gains = 0, losses = 0;
-                    for (let j = i-14; j < i; j++) {
-                        let diff = data[j].close - data[j-1].close;
-                        if (diff > 0) gains += diff; else losses -= diff;
-                    }
-                    const rs = (gains/14) / ((losses/14) || 1);
-                    const rsi = 100 - (100 / (1 + rs));
-                    
-                    const atr = data.slice(i-14, i).reduce((a, b) => a + (b.high - b.low), 0) / 14;
-                    const volBreak = (current.high - current.low) > (atr * 1.1);
+          const markers = [];
+          const startIndex = Math.min(100, Math.floor(data.length / 2));
+          for (let i = startIndex; i < data.length; i++) {
+              const current = data[i];
+              const ema50 = data.slice(Math.max(0, i-50), i).reduce((a, b) => a + b.close, 0) / Math.min(50, i);
+              const ema100 = data.slice(Math.max(0, i-100), i).reduce((a, b) => a + b.close, 0) / Math.min(100, i);
+              
+              const trendBullish = current.close > ema50 && ema50 > ema100;
+              const trendBearish = current.close < ema50 && ema50 < ema100;
+              
+              if (trendBullish || trendBearish) {
+                  let gains = 0, losses = 0;
+                  for (let j = i-14; j < i; j++) {
+                      let diff = data[j].close - data[j-1].close;
+                      if (diff > 0) gains += diff; else losses -= diff;
+                  }
+                  const rs = (gains/14) / ((losses/14) || 1);
+                  const rsi = 100 - (100 / (1 + rs));
+                  
+                  const atr = data.slice(i-14, i).reduce((a, b) => a + (b.high - b.low), 0) / 14;
+                  const volBreak = (current.high - current.low) > (atr * 1.1);
 
-                    if (volBreak) {
-                        if (trendBullish && rsi > 30 && rsi < 55) {
-                            markers.push({ time: current.time, position: 'belowBar', color: '#10b981', shape: 'arrowUp', text: 'BUY IDEA' });
-                        } else if (trendBearish && rsi > 45 && rsi < 70) {
-                            markers.push({ time: current.time, position: 'aboveBar', color: '#f43f5e', shape: 'arrowDown', text: 'SELL IDEA' });
-                        }
-                    }
-                }
-            }
-            candleSeries.setMarkers(markers);
+                  if (volBreak) {
+                      if (trendBullish && rsi > 30 && rsi < 55) {
+                          markers.push({ time: current.time, position: 'belowBar', color: '#10b981', shape: 'arrowUp', text: 'BUY IDEA' });
+                      } else if (trendBearish && rsi > 45 && rsi < 70) {
+                          markers.push({ time: current.time, position: 'aboveBar', color: '#f43f5e', shape: 'arrowDown', text: 'SELL IDEA' });
+                      }
+                  }
+              }
           }
+          candleSeries.setMarkers(markers);
 
         }
       } catch (e) {

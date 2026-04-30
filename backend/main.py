@@ -39,6 +39,7 @@ class AIRequest(BaseModel):
     rsi: float = 0
     trend: str = "Neutral"
     trades: list = [] # Para que la IA analice operaciones abiertas
+    asset: str = "XAU/USD"
 
 @app.get("/api/market/gold")
 def get_gold_data(interval: str = "15m", period: str = "5d"):
@@ -118,7 +119,7 @@ def analyze_market(req: AIRequest):
                 # Prompt mejorado y ultra completo
                 prompt = f"""
                 Actúa como un Analista Quant de Grado Institucional.
-                DATOS ACTUALES ORO (XAU/USD):
+                DATOS ACTUALES DE {req.asset}:
                 - Precio: ${req.price}
                 - RSI: {req.rsi}
                 - Tendencia Técnica: {req.trend}

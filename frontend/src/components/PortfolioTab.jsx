@@ -5,6 +5,7 @@ import axios from 'axios';
 export default function PortfolioTab() {
   const { portfolio, setPortfolio } = useStore();
   const [dcaAmount, setDcaAmount] = useState('');
+  const [customPrice, setCustomPrice] = useState('');
   const [spyLivePrice, setSpyLivePrice] = useState(0);
 
   const updateSPYState = async () => {
@@ -20,8 +21,10 @@ export default function PortfolioTab() {
 
   const handleDCA = () => {
     const amt = parseFloat(dcaAmount);
-    if (!amt || spyLivePrice === 0) return;
-    const boughtShares = amt / spyLivePrice;
+    const entryPrice = parseFloat(customPrice) > 0 ? parseFloat(customPrice) : spyLivePrice;
+    
+    if (!amt || entryPrice === 0) return;
+    const boughtShares = amt / entryPrice;
     
     const newEntry = {
         id: Date.now(),
@@ -40,6 +43,7 @@ export default function PortfolioTab() {
       history: newHistory
     });
     setDcaAmount('');
+    setCustomPrice('');
   };
 
   const handleDelete = (id) => {
@@ -96,14 +100,21 @@ export default function PortfolioTab() {
       </div>
 
       <div className="bg-slate-900/50 backdrop-blur-md border border-slate-800 p-8 rounded-2xl shadow-xl">
-        <h2 className="text-xl font-bold mb-6 border-b border-slate-800 pb-4">Añadir Aporte (DCA)</h2>
+        <div className="flex justify-between items-center mb-6 border-b border-slate-800 pb-4">
+          <h2 className="text-xl font-bold">Añadir Aporte (DCA)</h2>
+          <span className="text-xs text-slate-500 font-bold bg-slate-800/50 px-3 py-1 rounded-lg">Tip: Para editar un aporte, elimínalo abajo y vuelve a crearlo aquí con el precio exacto.</span>
+        </div>
         <div className="flex gap-4">
           <input 
             type="number" placeholder="Monto en USD (Ej. 500)" value={dcaAmount} onChange={e => setDcaAmount(e.target.value)}
             className="flex-grow bg-[#080b11]/80 border border-slate-800 rounded-xl p-4 text-slate-100 font-mono text-lg outline-none focus:border-emerald-500 transition-all"
           />
-          <button onClick={handleDCA} className="px-10 bg-emerald-500/10 text-emerald-500 border border-emerald-500/50 rounded-xl font-black hover:bg-emerald-500 hover:text-black transition-all uppercase tracking-wider text-lg">
-            Comprar Fracciones
+          <input 
+            type="number" placeholder="Precio SPY (Opcional)" value={customPrice} onChange={e => setCustomPrice(e.target.value)}
+            className="w-1/3 bg-[#080b11]/80 border border-slate-800 rounded-xl p-4 text-slate-100 font-mono text-lg outline-none focus:border-amber-500 transition-all"
+          />
+          <button onClick={handleDCA} className="px-8 bg-emerald-500/10 text-emerald-500 border border-emerald-500/50 rounded-xl font-black hover:bg-emerald-500 hover:text-black transition-all uppercase tracking-wider text-sm">
+            Añadir Aporte
           </button>
         </div>
       </div>
