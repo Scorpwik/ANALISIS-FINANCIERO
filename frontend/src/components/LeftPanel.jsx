@@ -1,8 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import useStore from '../store/useStore';
 
 export default function LeftPanel() {
-  const { goldData, setGoldData, risk, setRisk } = useStore();
+  const { goldData, setGoldData, risk, setRisk, activeTrades, addTrade, removeTrade, liveMarketData } = useStore();
+  const [newTrade, setNewTrade] = useState({ type: 'BUY', entry: '', lots: '0.01', sl: '', tp: '' });
+
+  const currentPrice = liveMarketData.length > 0 ? liveMarketData[liveMarketData.length-1].close : goldData.current;
 
   const handleGoldChange = (e) => setGoldData({ [e.target.name]: parseFloat(e.target.value) || 0 });
   const handleRiskChange = (e) => setRisk({ [e.target.name]: parseFloat(e.target.value) || 0 });

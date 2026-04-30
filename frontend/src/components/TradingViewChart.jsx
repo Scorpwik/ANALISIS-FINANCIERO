@@ -5,8 +5,7 @@ import useStore from '../store/useStore';
 
 export default function TradingViewChart() {
   const chartContainerRef = useRef();
-  const { setLiveMarketData } = useStore();
-  const [activeAsset, setActiveAsset] = useState('XAU/USD');
+  const { liveMarketData, setLiveMarketData, activeAsset, setActiveAsset, timeframe, setTimeframe } = useStore();
 
   useEffect(() => {
     let chart;
@@ -15,8 +14,9 @@ export default function TradingViewChart() {
     const fetchAndRender = async () => {
       try {
         const endpoint = activeAsset === 'SPY' ? '/api/market/spy/history' : '/api/market/gold';
-        const { data } = await axios.get(`http://localhost:8000${endpoint}`);
-        if (!data || data.length === 0 || !isMounted) return;
+        const period = timeframe === '1h' ? '3mo' : '1mo';
+        const { data } = await axios.get(`http://localhost:8000${endpoint}?interval=${timeframe}&period=${period}`);
+        if (!data || data.length < 50 || !isMounted) return;
         
         // Guardar para el motor de confluencia complejo (solo oro)
         if (activeAsset === 'XAU/USD') {
@@ -73,10 +73,11 @@ export default function TradingViewChart() {
           // Capa 4: Señales (Markers) generadas por el Motor de Confluencia
           if (activeAsset === 'XAU/USD') {
             const markers = [];
-            for (let i = 100; i < data.length; i++) {
+            const startIndex = Math.min(100, Math.floor(data.length / 2));
+            for (let i = startIndex; i < data.length; i++) {
                 const current = data[i];
-                const ema50 = data.slice(i-50, i).reduce((a, b) => a + b.close, 0) / 50;
-                const ema100 = data.slice(i-100, i).reduce((a, b) => a + b.close, 0) / 100;
+                const ema50 = data.slice(Math.max(0, i-50), i).reduce((a, b) => a + b.close, 0) / Math.min(50, i);
+                const ema100 = data.slice(Math.max(0, i-100), i).reduce((a, b) => a + b.close, 0) / Math.min(100, i);
                 
                 const trendBullish = current.close > ema50 && ema50 > ema100;
                 const trendBearish = current.close < ema50 && ema50 < ema100;
@@ -124,7 +125,7 @@ export default function TradingViewChart() {
       window.removeEventListener('resize', handleResize);
       if (chart) chart.remove();
     };
-  }, [activeAsset]);
+  }, [activeAsset, timeframe]);
 
   const calculateEMA = (data, period) => {
     const k = 2 / (period + 1);
@@ -157,7 +158,20 @@ export default function TradingViewChart() {
             S&P 500 (SPY)
           </button>
         </div>
-        <div className="text-xs text-slate-500 font-mono">LIVE / 15M INTERVAL</div>
+        
+        {/* Timeframe Selector */}
+        <div className="flex bg-[#080b11] border border-slate-800 rounded-xl p-1 gap-1">
+          {['5m', '15m', '30m', '1h'].map(tf => (
+            <button 
+              key={tf}
+              onClick={() => setTimeframe(tf)}
+              className={`px-3 py-1 rounded-lg text-[10px] font-bold transition-all ${timeframe === tf ? 'bg-amber-500 text-black' : 'text-slate-500 hover:text-slate-200'}`}
+            >
+              {tf.toUpperCase()}
+            </button>
+          ))}
+        </div>
+        <div className="text-xs text-slate-500 font-mono">LIVE / {timeframe.toUpperCase()}</div>
       </div>
       
       {/* Contenedor del Gráfico con 100% altura disponible */}

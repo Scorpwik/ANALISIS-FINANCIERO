@@ -21,11 +21,20 @@ const useStore = create(
       
       // Live Data Storage for Advanced Confluence Calculation
       liveMarketData: [],
-      setLiveMarketData: (data) => set({ liveMarketData: data })
+      setLiveMarketData: (data) => set({ liveMarketData: data }),
+
+      // Timeframe Management
+      timeframe: '15m',
+      setTimeframe: (tf) => set({ timeframe: tf }),
+
+      // Active Operations
+      activeTrades: [],
+      addTrade: (trade) => set((state) => ({ activeTrades: [...state.activeTrades, { ...trade, id: Date.now() }] })),
+      removeTrade: (id) => set((state) => ({ activeTrades: state.activeTrades.filter(t => t.id !== id) })),
     }),
     {
       name: 'nexus-v3-storage', // Guardado persistente automático
-      partialize: (state) => ({ risk: state.risk, apiKey: state.apiKey, portfolio: state.portfolio, goldData: state.goldData }),
+      partialize: (state) => ({ risk: state.risk, apiKey: state.apiKey, portfolio: state.portfolio, goldData: state.goldData, activeTrades: state.activeTrades, timeframe: state.timeframe }),
     }
   )
 );

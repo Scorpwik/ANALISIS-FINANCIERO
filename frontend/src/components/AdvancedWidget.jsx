@@ -4,7 +4,8 @@ export default function AdvancedWidget() {
   const containerRef = useRef();
 
   useEffect(() => {
-    if(containerRef.current) containerRef.current.innerHTML = '';
+    if (!containerRef.current || containerRef.current.querySelector('script')) return;
+
     const script = document.createElement("script");
     script.src = "https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js";
     script.type = "text/javascript";
@@ -30,7 +31,7 @@ export default function AdvancedWidget() {
         "hide_top_toolbar": false,
         "hide_legend": false,
         "save_image": false,
-        "container_id": "tradingview_widget"
+        "container_id": "tradingview_widget_container"
       }`;
     containerRef.current.appendChild(script);
   }, []);
@@ -43,7 +44,8 @@ export default function AdvancedWidget() {
                 <p className="text-slate-400 text-sm">Usa el menú superior del gráfico para iniciar sesión y sincronizar tus análisis personalizados.</p>
             </div>
         </div>
-        <div className="h-[calc(100%-80px)] w-full rounded-2xl overflow-hidden border border-slate-800 shadow-2xl" id="tradingview_widget" ref={containerRef}></div>
+        <div className="h-[calc(100%-80px)] w-full rounded-2xl overflow-hidden border border-slate-800 shadow-2xl" id="tradingview_widget_container" ref={containerRef}></div>
     </div>
   );
 }
+

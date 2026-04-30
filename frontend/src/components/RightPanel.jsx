@@ -3,12 +3,14 @@ import axios from 'axios';
 import useStore from '../store/useStore';
 
 export default function RightPanel() {
-  const { apiKey, setApiKey, liveMarketData } = useStore();
+  const { apiKey, setApiKey, liveMarketData, activeTrades, addTrade, removeTrade } = useStore();
   
   const [aiSummary, setAiSummary] = useState('');
+  const [newTrade, setNewTrade] = useState({ type: 'BUY', entry: '', lots: '0.01', sl: '', tp: '' });
+  const currentPrice = liveMarketData.length > 0 ? liveMarketData[liveMarketData.length-1].close : 2350;
 
   // Estado del Motor de Confluencia
-  const [conf, setConf] = useState({ trend: false, mom: false, vol: false, rr: false, signal: 'WAIT' });
+  const [conf, setConf] = useState({ trend: false, mom: false, vol: false, rr: false, signal: 'WAIT', rsi: 50 });
 
   // ----------------------------------------------------
   // MOTOR DE CONFLUENCIA ESTRICTA (ESPECIALIZADO EN ORO)
@@ -55,7 +57,7 @@ export default function RightPanel() {
         signal = trendBullish ? 'BUY' : 'SELL';
     }
 
-    setConf({ trend, mom, vol, rr, signal });
+    setConf({ trend, mom, vol, rr, signal, rsi });
   }, [liveMarketData]);
 
   // ----------------------------------------------------
@@ -67,7 +69,11 @@ export default function RightPanel() {
     try {
       const price = liveMarketData.length > 0 ? liveMarketData[liveMarketData.length-1].close : 2350;
       const { data } = await axios.post('http://localhost:8000/api/ai/analyze', {
-        api_key: apiKey, price: price
+        api_key: apiKey, 
+        price: price,
+        rsi: conf.rsi,
+        trend: conf.signal,
+        trades: activeTrades
       });
       setAiSummary(data.summary);
     } catch (e) {
@@ -110,7 +116,59 @@ export default function RightPanel() {
         </div>
       </div>
 
-      {/* Módulo 2: Gemini Macro AI */}
+      {/* Módulo 2: Operaciones Activas */}
+      <div className="bg-slate-900/40 backdrop-blur-md border border-slate-800 p-6 rounded-2xl shadow-xl">
+        <h2 className="text-sm font-semibold mb-4 text-emerald-500 uppercase tracking-widest border-b border-slate-800/50 pb-2">Active Operations</h2>
+        
+        {/* Formulario de Nueva Operación */}
+        <div className="grid grid-cols-2 gap-2 mb-4">
+          <select 
+            value={newTrade.type} onChange={e => setNewTrade({...newTrade, type: e.target.value})}
+            className="col-span-2 bg-[#080b11] border border-slate-800 p-2 rounded-lg text-xs font-bold text-slate-100 outline-none"
+          >
+            <option value="BUY">BUY (LONG)</option>
+            <option value="SELL">SELL (SHORT)</option>
+          </select>
+          <input 
+            type="number" placeholder="Entry" value={newTrade.entry} onChange={e => setNewTrade({...newTrade, entry: e.target.value})}
+            className="bg-[#080b11] border border-slate-800 p-2 rounded-lg text-xs font-mono text-slate-100"
+          />
+          <input 
+            type="number" placeholder="Lots" value={newTrade.lots} onChange={e => setNewTrade({...newTrade, lots: e.target.value})}
+            className="bg-[#080b11] border border-slate-800 p-2 rounded-lg text-xs font-mono text-slate-100"
+          />
+          <button 
+            onClick={() => { if(newTrade.entry) { addTrade(newTrade); setNewTrade({type:'BUY', entry:'', lots:'0.01', sl:'', tp:''}); } }}
+            className="col-span-2 bg-emerald-500/20 text-emerald-500 border border-emerald-500/40 p-2 rounded-lg text-[10px] font-black uppercase hover:bg-emerald-500 hover:text-black transition-all"
+          >
+            Open Position
+          </button>
+        </div>
+
+        {/* Lista de Operaciones */}
+        <div className="flex flex-col gap-2 max-h-[150px] overflow-y-auto custom-scrollbar">
+          {activeTrades.map(trade => {
+            const pips = trade.type === 'BUY' ? (currentPrice - trade.entry) : (trade.entry - currentPrice);
+            const pnl = pips * (parseFloat(trade.lots) * 100);
+            return (
+              <div key={trade.id} className="bg-[#080b11]/80 border border-slate-800 p-3 rounded-xl flex justify-between items-center group">
+                <div>
+                  <div className={`text-[10px] font-black ${trade.type === 'BUY' ? 'text-emerald-500' : 'text-rose-500'}`}>{trade.type} {trade.lots} Lots</div>
+                  <div className="text-[9px] text-slate-500 font-mono">Entry: {trade.entry}</div>
+                </div>
+                <div className="text-right">
+                  <div className={`font-mono text-xs font-bold ${pnl >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                    {pnl >= 0 ? '+' : ''}{pnl.toFixed(2)} USD
+                  </div>
+                  <button onClick={() => removeTrade(trade.id)} className="text-[8px] text-slate-600 hover:text-rose-500 transition-colors uppercase font-bold">Close</button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Módulo 3: Gemini Macro AI */}
       <div className="bg-slate-900/40 backdrop-blur-md border border-slate-800 p-6 rounded-2xl">
         <h2 className="text-sm font-semibold mb-4 text-slate-300 uppercase tracking-wider border-b border-slate-800/50 pb-2">Macro AI Intelligence</h2>
         <input 

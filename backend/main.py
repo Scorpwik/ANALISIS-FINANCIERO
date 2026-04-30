@@ -36,12 +36,15 @@ init_db()
 class AIRequest(BaseModel):
     api_key: str
     price: float
+    rsi: float = 0
+    trend: str = "Neutral"
+    trades: list = [] # Para que la IA analice operaciones abiertas
 
 @app.get("/api/market/gold")
-def get_gold_data():
+def get_gold_data(interval: str = "15m", period: str = "5d"):
     try:
         ticker = yf.Ticker("GC=F")
-        df = ticker.history(period="5d", interval="15m")
+        df = ticker.history(period=period, interval=interval)
         
         data = []
         for index, row in df.iterrows():
@@ -71,10 +74,10 @@ def get_spy_data():
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/api/market/spy/history")
-def get_spy_history():
+def get_spy_history(interval: str = "15m", period: str = "5d"):
     try:
         ticker = yf.Ticker("SPY")
-        df = ticker.history(period="5d", interval="15m")
+        df = ticker.history(period=period, interval=interval)
         data = []
         for index, row in df.iterrows():
             data.append({
@@ -111,7 +114,27 @@ def analyze_market(req: AIRequest):
             try:
                 print(f"DEBUG: Probando modelo {model_name}...")
                 model = genai.GenerativeModel(model_name)
-                prompt = f"Analiza la estructura macroeconómica institucional del oro (XAU/USD) con precio actual de {req.price}. Responde de forma ultra concisa (máx 50 palabras) usando formato HTML con <b>."
+                
+                # Prompt mejorado y ultra completo
+                prompt = f"""
+                Actúa como un Analista Quant de Grado Institucional.
+                DATOS ACTUALES ORO (XAU/USD):
+                - Precio: ${req.price}
+                - RSI: {req.rsi}
+                - Tendencia Técnica: {req.trend}
+                
+                OPERACIONES ABIERTAS DEL USUARIO:
+                {req.trades if req.trades else "Sin operaciones abiertas."}
+                
+                TAREA:
+                1. Analiza si la estructura actual favorece las operaciones abiertas.
+                2. Da una recomendación táctica inmediata (Hold, Close, BE, Add).
+                3. Explica el porqué basado en liquidez y niveles técnicos.
+                
+                RESPUESTA:
+                Usa formato HTML profesional con <b>, <br> y colores CSS en línea si es necesario. Máximo 100 palabras.
+                """
+                
                 response = model.generate_content(prompt)
                 
                 print(f"✅ ¡Éxito con el modelo {model_name}!")
