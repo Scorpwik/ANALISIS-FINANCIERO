@@ -179,7 +179,7 @@ export default function RightPanel() {
         <button onClick={getAiAnalysis} className="w-full bg-amber-500/10 text-amber-500 border border-amber-500/50 px-4 py-2 rounded-lg hover:bg-amber-500 hover:text-black transition-all font-bold text-xs tracking-wider uppercase mb-4">
           Scan Global Macros
         </button>
-        <div className="bg-[#080b11]/80 border-l-2 border-amber-500 p-4 rounded-r-lg text-[13px] text-slate-300 min-h-[100px] h-[120px] overflow-y-auto custom-scrollbar leading-relaxed" 
+        <div className="bg-[#080b11]/80 border-l-2 border-amber-500 p-4 rounded-r-lg text-[13px] text-slate-300 min-h-[300px] max-h-[500px] overflow-y-auto custom-scrollbar leading-relaxed" 
              dangerouslySetInnerHTML={{__html: aiSummary || '<span class="text-slate-600 italic">Waiting for command...</span>'}}>
         </div>
       </div>
