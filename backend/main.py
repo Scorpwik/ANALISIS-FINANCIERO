@@ -41,21 +41,28 @@ class AIRequest(BaseModel):
     trades: list = [] # Para que la IA analice operaciones abiertas
     asset: str = "XAU/USD"
 
+import urllib.request
+import json
+
 @app.get("/api/market/gold")
 def get_gold_data(interval: str = "15m", period: str = "5d"):
     try:
-        ticker = yf.Ticker("GC=F")
-        df = ticker.history(period=period, interval=interval)
-        
+        # Usamos PAXGUSDT (Oro Tokenizado real) de Binance porque es 100% en tiempo real 24/7 sin delay.
+        # GC=F (Yahoo Finance) tiene 15 mins de retraso por regulaciones del mercado de futuros.
+        url = f"https://api.binance.com/api/v3/klines?symbol=PAXGUSDT&interval={interval}&limit=500"
+        req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+        with urllib.request.urlopen(req) as response:
+            binance_data = json.loads(response.read().decode())
+            
         data = []
-        for index, row in df.iterrows():
+        for item in binance_data:
             data.append({
-                "time": int(index.timestamp()),
-                "open": row["Open"],
-                "high": row["High"],
-                "low": row["Low"],
-                "close": row["Close"],
-                "value": row["Volume"] # Necesario para el Volume Histogram en frontend
+                "time": int(item[0] / 1000),
+                "open": float(item[1]),
+                "high": float(item[2]),
+                "low": float(item[3]),
+                "close": float(item[4]),
+                "value": float(item[5])
             })
         return data
     except Exception as e:
